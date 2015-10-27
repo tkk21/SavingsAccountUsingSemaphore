@@ -32,5 +32,55 @@ struct shared_variable_struct {
 }
 
 int main (int argc, char *argv[]){
+    printf("Program started with the pid %d\n", getpid());
+
+    union semun semaphore_values;
+
+    //setting up the initial semaphore values
+    unsigned short semaphore_init_values[LENGTH_OF_SEMAPHORES];
+    semaphore_init_values[SEMAPHORE_MUTEX] = 1;
+    semaphore_init_values[SEMAPHORE_wlist] = 0;
+    semaphore_values.array = semaphore_init_values;
+
+    //syscall to make semaphore
+    int semid = get_semid((key_t)SEMAPHORE_KEY);
+    if (semctl (semid, SEMAPHORE_MUTEX, SETALL, semaphore_values) == -1){
+        perror("semctl failed");
+        exit(EXIT_FAILURE);
+    }
+
+    //Shared memory 
+    int shmid = get_shmid((key_t)SEMAPHORE_KEY);
+    struct shared_variable_struct * shared_variables = shmat(shmid, 0, 0);
+
+    //initial values of the shared memory variables
+    shared_variables->wcount = 0;
+    shared_variables->balance = 500;
+    shared_variables->list = NULL;
+
+
+
+
+
+
+    //everything is done
+    printf("Done\n");
+
+    //cleanup
+    if(shmdt(shared_variables) == -1){
+        perror("shmdt failed");
+        exit(EXIT_FAILURE);
+    }
+
+    if (shmctl(shmid, IPC_RMID, NULL) < 0){
+        perror("shmctl failed");
+        exit(EXIT_FAILURE);
+    }
+
+    if (semctl(semid, SEMAPHORE_MUTEX, IPC_RMID, semaphore_values) == -1){
+        perror("semctl failed");
+        exit(EXIT_FAILURE);
+    }
     
+
 }
