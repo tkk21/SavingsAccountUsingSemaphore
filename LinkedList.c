@@ -7,7 +7,10 @@ void AddEndOfList (LinkedList *l, int val){
     next->val = val;
 
     LinkedListNode *ptr = l->head;
-
+    if (!ptr){
+        l->head = next;
+        return;
+    }
     while(ptr->next){
         ptr = ptr->next;
     }
@@ -32,27 +35,4 @@ void printContentOfLL (LinkedList *l){
         ptr = ptr->next;
     }
     printf("\n");
-}
-
-int main(){
-    LinkedListNode *root;
-    LinkedList *list;
-    root = malloc(sizeof(LinkedListNode));
-    list = malloc(sizeof(LinkedList));
-
-    root->val = 0;
-    list->head = root;
-
-    printContentOfLL(list);
-
-    AddEndOfList(list, 1);
-    printContentOfLL(list);
-    printf("first request amount: %d", FirstRequestAmount(list));
-
-    DeleteFirstRequest(list);
-    printContentOfLL(list);
-    
-
-
-    return 0;
 }
