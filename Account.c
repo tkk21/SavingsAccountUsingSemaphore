@@ -1,4 +1,3 @@
-
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
@@ -8,6 +7,8 @@
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "LinkedList.h"
 
 #define SEMAPHORE_KEY 0xFA2B
 
@@ -101,16 +102,40 @@ void deposit(int deposit){
         semaphore_signal(semid, SEMAPHORE_WLIST);//enough to withdraw, signal the waiting withdrawal
     }
     //done
+    exit(EXIT_SUCCESS);
 }
 
-void withdraw(){
-    printf("[PID: %d]: Withdrawing \n", getpid());
+void withdraw(int withdraw){
+    printf("[PID: %d]: Withdrawing %d\n", getpid(), withdraw);
     int semid = get_semid((key_t)SEMAPHORE_KEY);
     int shmid = get_shmid((key_t)SEMAPHORE_KEY);
     struct shared_variable_struct * shared_variables = shmat(shmid, 0, 0);
 
     //Implementing Withdraw using semaphore
-
+    printf("[PID: %d, Withdraw]: Waiting on Mutex\n", getpid());
+    semaphore_wait(semid, SEMAPHORE_MUTEX);
+    printf("[PID: %d, Deposit]: Passed Mutex\n", getpid());
+    
+    if (shared_variables.wcount == 0 && balance>withdraw){
+        shared_variables.balance = shared_variables.balance - withdraw;
+        semaphore_signal(semid, SEMAPHORE_MUTEX);
+    }
+    else {
+        shared_variables.wcount = shared_variables.wcount + 1;
+        AddEndOfList(shared_variables.list, withdraw);
+        semaphore_signal(semid, SEMAPHORE_MUTEX);
+        semaphore_wait(semid, SEMAPHORE_WLIST); //start waiting for a deposit
+        shared_variables.balance = shared_variables.balance - FirstRequestAmount(shared_variables.list);
+        DeleteFirstRequest(list);
+        shared_variables.wcount = shared_variables.wcount - 1;
+        if (shared_variables.wcount > 1 && FirstRequestAmount(shared_variables.list) < shared_variables.balance){
+            semaphore_signal(semid, SEMAPHORE_WLIST);
+        }
+        else{
+            semaphore_signal(semid, SEMAPHORE_MUTEX);//this signal() is paired with deposit's wait(mutex)
+        }
+    }
+    exit(EXIT_SUCCESS);
 }
 
 int main (int argc, char *argv[]){
