@@ -28,7 +28,7 @@ union semun {
 };
 
 struct shared_variable_struct {
-    int wcount; //number of waiting withdrawal cusomters on wlist
+    int wcount; //number of waiting withdrawal customers on wlist
     int balance;
     LinkedList *list;
 };
@@ -192,13 +192,20 @@ void customer_fork (transaction_type type, int amount){
 //this function starts up the customer processes in a preset manner
 //as allowed in the instructions
 //the preset sequence is
-//w55, w32, w18, d4, d35, d62, d97, w252, d275, d54
 int test (){
     time_t t;
     srand( (unsigned) time(&t));
-    customer_fork(WITHDRAW, 200);
+    transaction_type transaction_list[10] = {WITHDRAW, WITHDRAW, WITHDRAW, DEPOSIT, DEPOSIT, DEPOSIT, DEPOSIT, WITHDRAW, DEPOSIT, DEPOSIT};
+    int amount_list[10] = {50, 30, 20, 5, 35, 60, 100, 250, 275, 55};
+    int i; 
+    for (i = 0; i<10; i++){
+        customer_fork(transaction_list[i], amount_list[i]);
+        sleep(rand()%4+ 1);//sleep between 1-5 s
+    }
 
-    return 1;
+    //customer_fork(WITHDRAW, 200);
+
+    return 10;
 }
 
 int main (int argc, char *argv[]){
