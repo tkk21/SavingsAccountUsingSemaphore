@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "LinkedList.h"
 
@@ -31,6 +32,8 @@ struct shared_variable_struct {
     int balance;
     LinkedList list;
 }
+
+typedef enum {DEPOSIT, WITHDRAW} transaction_type;
 
 int get_semid(key_t semkey){
     int val = semget(semkey, LENGTH_OF_SEMAPHORES, 0777 | IPC_CREAT);
@@ -160,12 +163,40 @@ void withdraw(int withdraw){
     exit(EXIT_SUCCESS);
 }
 
+void customer_fork (transaction_type type, int amount){
+    pid_t child_pid;
+    child_pid = fork();
+    if (child_pid == -1){
+        perror("fork failed");
+        exit(EXIT_FAILURE);
+    }
+    else if (child_pid == 0){
+        switch(type){
+        
+            case DEPOSIT:
+                deposit(amount);
+                break;
+            case WITHDRAW:
+                withdraw(amount);
+                break;
+            default:
+                printf("!Invalid Transaction Type!\n");
+                exit(EXIT_FAILURE);
+        }
+    }
+    else {
+        return; //parent
+    }
+}
+
 //this function starts up the customer processes in a preset manner
 //as allowed in the instructions
 //the preset sequence is
 //w55, w32, w18, d4, d35, d62, d97, w252, d275, d54
 void test (){
-    
+    time_t t;
+    srand( (unsigned) time(&t));
+    customer_fork(WITHDRAW, 200);
 }
 
 int main (int argc, char *argv[]){
@@ -194,6 +225,9 @@ int main (int argc, char *argv[]){
     shared_variables->wcount = 0;
     shared_variables->balance = 500;
     shared_variables->list = NULL;
+    
+    test();
+
 
     //everything is done
     printf("Done\n");
