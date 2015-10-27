@@ -77,6 +77,10 @@ void semaphore_signal (int semid, int semnum){
     semaphore_operation(semid, semnum, 1);
 }
 
+void print_statement (struct shared_variable_struct * shared_variables){
+    printf("Current Balance is: %d\n", shared_variables.balance);
+}
+
 //deposit/withdraw functions of the Savings Account problem
 
 void deposit(int deposit){
@@ -90,8 +94,13 @@ void deposit(int deposit){
     printf("[PID: %d, Deposit]: Waiting on Mutex\n", getpid());
     semaphore_wait(semid, SEMAPHORE_MUTEX);
     printf("[PID: %d, Deposit]: Passed Mutex\n", getpid());
-
+    
+    printf("[PID: %d, Deposit]: (Before Deposit) ", getpid());
+    print_statement(shared_variables);
     shared_variables.balance = shared_variables.balance + deposit;
+    printf("[PID: %d, Deposit]: (After Deposit) ", getpid());
+    print_statement(shared_variables);
+
     if (shared_variables.wcount == 0){ // no withdrawal requests at this time
         semaphore_signal(semid, SEMAPHORE_MUTEX);
     }
@@ -114,18 +123,31 @@ void withdraw(int withdraw){
     //Implementing Withdraw using semaphore
     printf("[PID: %d, Withdraw]: Waiting on Mutex\n", getpid());
     semaphore_wait(semid, SEMAPHORE_MUTEX);
-    printf("[PID: %d, Deposit]: Passed Mutex\n", getpid());
+    printf("[PID: %d, Withdraw]: Passed Mutex\n", getpid());
     
     if (shared_variables.wcount == 0 && balance>withdraw){
+        printf("[PID: %d, Withdraw]: (Before Deposit) ", getpid());
+        print_statement(shared_variables);
         shared_variables.balance = shared_variables.balance - withdraw;
+        printf("[PID: %d, Withdraw]: (After Deposit) ", getpid());
+        print_statement(shared_variables);
+ 
         semaphore_signal(semid, SEMAPHORE_MUTEX);
     }
     else {
         shared_variables.wcount = shared_variables.wcount + 1;
         AddEndOfList(shared_variables.list, withdraw);
         semaphore_signal(semid, SEMAPHORE_MUTEX);
+        printf("[PID: %d, Withdraw]: Waiting on wlist\n", getpid());
         semaphore_wait(semid, SEMAPHORE_WLIST); //start waiting for a deposit
+        printf("[PID: %d, Withdraw]: Passed wlist\n", getpid());
+ 
+        printf("[PID: %d, Withdraw]: (Before Deposit) ", getpid());
+        print_statement(shared_variables);
         shared_variables.balance = shared_variables.balance - FirstRequestAmount(shared_variables.list);
+        printf("[PID: %d, Withdraw]: (After Deposit) ", getpid());
+        print_statement(shared_variables);
+        
         DeleteFirstRequest(list);
         shared_variables.wcount = shared_variables.wcount - 1;
         if (shared_variables.wcount > 1 && FirstRequestAmount(shared_variables.list) < shared_variables.balance){
@@ -136,6 +158,14 @@ void withdraw(int withdraw){
         }
     }
     exit(EXIT_SUCCESS);
+}
+
+//this function starts up the customer processes in a preset manner
+//as allowed in the instructions
+//the preset sequence is
+//w55, w32, w18, d4, d35, d62, d97, w252, d275, d54
+void test (){
+    
 }
 
 int main (int argc, char *argv[]){
