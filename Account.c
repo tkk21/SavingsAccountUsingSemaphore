@@ -233,7 +233,7 @@ int main (int argc, char *argv[]){
     processes_fired = test();
     
     int i;
-    for (i = 0; j<processes_fired; i++){
+    for (i = 0; i<processes_fired; i++){
         wait(NULL);
     }
     
