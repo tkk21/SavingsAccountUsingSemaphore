@@ -13,7 +13,7 @@
 
 //Index of the semaphores in the semaphore array
 #define SEMAPHORE_MUTEX 0
-#define SEMAPHORE_wlist 1
+#define SEMAPHORE_WLIST 1
 
 #define LENGTH_OF_SEMAPHORES 2
 
@@ -78,6 +78,41 @@ void semaphore_signal (int semid, int semnum){
 
 //deposit/withdraw functions of the Savings Account problem
 
+void deposit(int deposit){
+    printf("[PID: %d]: Depositing %d\n", getpid(), deposit);
+    
+    int semid = get_semid((key_t)SEMAPHORE_KEY);
+    int shmid = get_shmid((key_t)SEMAPHORE_KEY);
+    struct shared_variable_struct * shared_variables = shmat(shmid, 0, 0);
+
+    //Implementing Deposit using semaphore
+    printf("[PID: %d, Deposit]: Waiting on Mutex\n", getpid());
+    semaphore_wait(semid, SEMAPHORE_MUTEX);
+    printf("[PID: %d, Deposit]: Passed Mutex\n", getpid());
+
+    shared_variables.balance = shared_variables.balance + deposit;
+    if (shared_variables.wcount == 0){ // no withdrawal requests at this time
+        semaphore_signal(semid, SEMAPHORE_MUTEX);
+    }
+    else if (FirstRequestAmount(shared_variables.list) > shared_variables.balance){ // Not enough balance for 1st waiting withdrawal
+        semaphore_signal(semid, SEMAPHORE_MUTEX);
+    }
+    else {
+        semaphore_signal(semid, SEMAPHORE_WLIST);//enough to withdraw, signal the waiting withdrawal
+    }
+    //done
+}
+
+void withdraw(){
+    printf("[PID: %d]: Withdrawing \n", getpid());
+    int semid = get_semid((key_t)SEMAPHORE_KEY);
+    int shmid = get_shmid((key_t)SEMAPHORE_KEY);
+    struct shared_variable_struct * shared_variables = shmat(shmid, 0, 0);
+
+    //Implementing Withdraw using semaphore
+
+}
+
 int main (int argc, char *argv[]){
     printf("Program started with the pid %d\n", getpid());
 
@@ -86,7 +121,7 @@ int main (int argc, char *argv[]){
     //setting up the initial semaphore values
     unsigned short semaphore_init_values[LENGTH_OF_SEMAPHORES];
     semaphore_init_values[SEMAPHORE_MUTEX] = 1;
-    semaphore_init_values[SEMAPHORE_wlist] = 0;
+    semaphore_init_values[SEMAPHORE_WLIST] = 0;
     semaphore_values.array = semaphore_init_values;
 
     //syscall to make semaphore
