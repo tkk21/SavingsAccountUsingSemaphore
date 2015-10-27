@@ -31,6 +31,53 @@ struct shared_variable_struct {
     LinkedList list;
 }
 
+int get_semid(key_t semkey){
+    int val = semget(semkey, LENGTH_OF_SEMAPHORES, 0777 | IPC_CREAT);
+    if (val == -1){
+        perror("semget failed");
+        exit(EXIT_FAILURE);
+    }
+    return val;
+}
+
+int get_shmid(key_t shmkey){
+    int val = shmget(shmkey, sizeof(struct shared_variable_struct), 0777 | IPC_CREAT);
+    if (val == -1){
+        perror("shmget failed");
+        exit(EXIT_FAILURE);
+    }
+    return val;
+}
+
+//semaphore wait and signal wrapper functions for System-V
+void semaphore_operation (int semid, int semnum, int op){
+    struct sembuf buffer;
+    buffer.sem_num = semnum;
+    buffer.sem_op = op;
+    buffer.sem_flg = 0;
+
+    //do the actual semaphore operation
+    if (semop(semid, &buffer, 1) == -1){
+        if (op==-1){
+            perror("semaphore_wait failed");
+        }
+        if (op==1){
+            perror("semaphore_signal failed");
+        }
+        exit(EXIT_FAILURE);
+    }
+}
+
+void semaphore_wait (int semid, int semnum){
+    semaphore_operation(semid, semnum, -1);
+}
+
+void semaphore_signal (int semid, int semnum){
+    semaphore_operation(semid, semnum, 1);
+}
+
+//deposit/withdraw functions of the Savings Account problem
+
 int main (int argc, char *argv[]){
     printf("Program started with the pid %d\n", getpid());
 
@@ -57,11 +104,6 @@ int main (int argc, char *argv[]){
     shared_variables->wcount = 0;
     shared_variables->balance = 500;
     shared_variables->list = NULL;
-
-
-
-
-
 
     //everything is done
     printf("Done\n");
