@@ -25,13 +25,13 @@ union semun {
     struct semid_ds *buf;//Buffer for IPC_STAT, IPC_SET
     unsigned short *array;//array for GETALL, SETALL
     struct seminfo *_buf;//Buffer for IPC_INFO
-}
+};
 
 struct shared_variable_struct {
     int wcount; //number of waiting withdrawal cusomters on wlist
     int balance;
-    LinkedList list;
-}
+    LinkedList *list;
+};
 
 typedef enum {DEPOSIT, WITHDRAW} transaction_type;
 
@@ -81,7 +81,7 @@ void semaphore_signal (int semid, int semnum){
 }
 
 void print_statement (struct shared_variable_struct * shared_variables){
-    printf("Current Balance is: %d\n", shared_variables.balance);
+    printf("Current Balance is: %d\n", shared_variables->balance);
 }
 
 //deposit/withdraw functions of the Savings Account problem
@@ -100,14 +100,14 @@ void deposit(int deposit){
     
     printf("[PID: %d, Deposit]: (Before Deposit) ", getpid());
     print_statement(shared_variables);
-    shared_variables.balance = shared_variables.balance + deposit;
+    shared_variables->balance = shared_variables->balance + deposit;
     printf("[PID: %d, Deposit]: (After Deposit) ", getpid());
     print_statement(shared_variables);
 
-    if (shared_variables.wcount == 0){ // no withdrawal requests at this time
+    if (shared_variables->wcount == 0){ // no withdrawal requests at this time
         semaphore_signal(semid, SEMAPHORE_MUTEX);
     }
-    else if (FirstRequestAmount(shared_variables.list) > shared_variables.balance){ // Not enough balance for 1st waiting withdrawal
+    else if (FirstRequestAmount(shared_variables->list) > shared_variables->balance){ // Not enough balance for 0st waiting withdrawal
         semaphore_signal(semid, SEMAPHORE_MUTEX);
     }
     else {
@@ -128,18 +128,18 @@ void withdraw(int withdraw){
     semaphore_wait(semid, SEMAPHORE_MUTEX);
     printf("[PID: %d, Withdraw]: Passed Mutex\n", getpid());
     
-    if (shared_variables.wcount == 0 && balance>withdraw){
+    if (shared_variables->wcount == 0 && shared_variables->balance>withdraw){
         printf("[PID: %d, Withdraw]: (Before Deposit) ", getpid());
         print_statement(shared_variables);
-        shared_variables.balance = shared_variables.balance - withdraw;
+        shared_variables->balance = shared_variables->balance - withdraw;
         printf("[PID: %d, Withdraw]: (After Deposit) ", getpid());
         print_statement(shared_variables);
  
         semaphore_signal(semid, SEMAPHORE_MUTEX);
     }
     else {
-        shared_variables.wcount = shared_variables.wcount + 1;
-        AddEndOfList(shared_variables.list, withdraw);
+        shared_variables->wcount = shared_variables->wcount + 1;
+        AddEndOfList(shared_variables->list, withdraw);
         semaphore_signal(semid, SEMAPHORE_MUTEX);
         printf("[PID: %d, Withdraw]: Waiting on wlist\n", getpid());
         semaphore_wait(semid, SEMAPHORE_WLIST); //start waiting for a deposit
@@ -147,13 +147,13 @@ void withdraw(int withdraw){
  
         printf("[PID: %d, Withdraw]: (Before Deposit) ", getpid());
         print_statement(shared_variables);
-        shared_variables.balance = shared_variables.balance - FirstRequestAmount(shared_variables.list);
+        shared_variables->balance = shared_variables->balance - FirstRequestAmount(shared_variables->list);
         printf("[PID: %d, Withdraw]: (After Deposit) ", getpid());
         print_statement(shared_variables);
         
-        DeleteFirstRequest(list);
-        shared_variables.wcount = shared_variables.wcount - 1;
-        if (shared_variables.wcount > 1 && FirstRequestAmount(shared_variables.list) < shared_variables.balance){
+        DeleteFirstRequest(shared_variables->list);
+        shared_variables->wcount = shared_variables->wcount - 1;
+        if (shared_variables->wcount > 1 && FirstRequestAmount(shared_variables->list) < shared_variables->balance){
             semaphore_signal(semid, SEMAPHORE_WLIST);
         }
         else{
@@ -224,7 +224,8 @@ int main (int argc, char *argv[]){
     //initial values of the shared memory variables
     shared_variables->wcount = 0;
     shared_variables->balance = 500;
-    shared_variables->list = NULL;
+    shared_variables->list = malloc(sizeof(LinkedList));
+    shared_variables->list->head = NULL;
     
     test();
 
