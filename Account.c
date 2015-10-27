@@ -193,10 +193,12 @@ void customer_fork (transaction_type type, int amount){
 //as allowed in the instructions
 //the preset sequence is
 //w55, w32, w18, d4, d35, d62, d97, w252, d275, d54
-void test (){
+int test (){
     time_t t;
     srand( (unsigned) time(&t));
     customer_fork(WITHDRAW, 200);
+
+    return 1;
 }
 
 int main (int argc, char *argv[]){
@@ -227,9 +229,14 @@ int main (int argc, char *argv[]){
     shared_variables->list = malloc(sizeof(LinkedList));
     shared_variables->list->head = NULL;
     
-    test();
-
-
+    int processes_fired;
+    processes_fired = test();
+    
+    int i;
+    for (i = 0; j<processes_fired; i++){
+        wait(NULL);
+    }
+    
     //everything is done
     printf("Done\n");
 
