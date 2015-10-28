@@ -82,6 +82,7 @@ void semaphore_signal (int semid, int semnum){
 
 void print_statement (struct shared_variable_struct * shared_variables){
     printf("Current Balance is: %d\n", shared_variables->balance);
+    printf("Number of Waiting Withdrawals: %d\n", shared_variables->wcount);
 }
 
 //deposit/withdraw functions of the Savings Account problem
@@ -103,7 +104,8 @@ void deposit(int deposit){
     shared_variables->balance = shared_variables->balance + deposit;
     printf("[PID: %d, Deposit]: (After Deposit) ", getpid());
     print_statement(shared_variables);
-
+    
+    printf("[PID: %d, Deposit]: (After Deposit) First Waiting Withdrawal: %d\n", getpid(),FirstRequestAmount(shared_variables->list));
     if (shared_variables->wcount == 0){ // no withdrawal requests at this time
         semaphore_signal(semid, SEMAPHORE_MUTEX);
     }
@@ -128,11 +130,11 @@ void withdraw(int withdraw){
     semaphore_wait(semid, SEMAPHORE_MUTEX);
     printf("[PID: %d, Withdraw]: Passed Mutex\n", getpid());
     
-    if (shared_variables->wcount == 0 && shared_variables->balance>withdraw){
-        printf("[PID: %d, Withdraw]: (Before Deposit) ", getpid());
+    if (shared_variables->wcount == 0 && shared_variables->balance>=withdraw){
+        printf("[PID: %d, Withdraw]: (Before Withdrawal) ", getpid());
         print_statement(shared_variables);
         shared_variables->balance = shared_variables->balance - withdraw;
-        printf("[PID: %d, Withdraw]: (After Deposit) ", getpid());
+        printf("[PID: %d, Withdraw]: (After Withdrawal) ", getpid());
         print_statement(shared_variables);
  
         semaphore_signal(semid, SEMAPHORE_MUTEX);
@@ -145,15 +147,17 @@ void withdraw(int withdraw){
         semaphore_wait(semid, SEMAPHORE_WLIST); //start waiting for a deposit
         printf("[PID: %d, Withdraw]: Passed wlist\n", getpid());
  
-        printf("[PID: %d, Withdraw]: (Before Deposit) ", getpid());
+        printf("[PID: %d, Withdraw]: (Before Withdrawal) ", getpid());
         print_statement(shared_variables);
         shared_variables->balance = shared_variables->balance - FirstRequestAmount(shared_variables->list);
-        printf("[PID: %d, Withdraw]: (After Deposit) ", getpid());
-        print_statement(shared_variables);
         
         DeleteFirstRequest(shared_variables->list);
         shared_variables->wcount = shared_variables->wcount - 1;
-        if (shared_variables->wcount > 1 && FirstRequestAmount(shared_variables->list) < shared_variables->balance){
+        printf("[PID: %d, Withdraw]: (After Withdrawal) ", getpid());
+        print_statement(shared_variables);
+        
+
+        if (shared_variables->wcount > 0 && FirstRequestAmount(shared_variables->list) < shared_variables->balance){
             semaphore_signal(semid, SEMAPHORE_WLIST);
         }
         else{
@@ -192,20 +196,35 @@ void customer_fork (transaction_type type, int amount){
 //this function starts up the customer processes in a preset manner
 //as allowed in the instructions
 //the preset sequence is
+//     w50, w30, w20, d5, d35, d60, d100, w250, d275, d55, w700, w80, w100, d300, w100
+//expected sequence of balance is
+//500, 450, 420, 400, 405, 440, 500, 600, 350, 625, 680, -20, -100, -200, 100, 0
 int test (){
     time_t t;
     srand( (unsigned) time(&t));
-    transaction_type transaction_list[10] = {WITHDRAW, WITHDRAW, WITHDRAW, DEPOSIT, DEPOSIT, DEPOSIT, DEPOSIT, WITHDRAW, DEPOSIT, DEPOSIT};
-    int amount_list[10] = {50, 30, 20, 5, 35, 60, 100, 250, 275, 55};
+    transaction_type transaction_list[15] = {WITHDRAW, WITHDRAW, WITHDRAW, DEPOSIT, DEPOSIT, DEPOSIT, DEPOSIT, WITHDRAW, DEPOSIT, DEPOSIT, WITHDRAW, WITHDRAW, WITHDRAW, DEPOSIT, WITHDRAW};
+    int amount_list[15] = {50, 30, 20, 5, 35, 60, 100, 250, 275, 55, 700, 80, 100, 300, 100};
     int i; 
-    for (i = 0; i<10; i++){
+    for (i = 0; i<15; i++){
         customer_fork(transaction_list[i], amount_list[i]);
-        sleep(rand()%4+ 1);//sleep between 1-5 s
+        sleep(rand()%2+ 1);//sleep between 1-3 s
     }
 
     //customer_fork(WITHDRAW, 200);
 
-    return 10;
+    return 15;
+}
+
+int test1 (){
+    
+    transaction_type transaction_list[5] = {DEPOSIT, DEPOSIT, DEPOSIT, DEPOSIT, DEPOSIT};
+    int amount_list[5] = {100, 100, 100, 100, 100};
+    int i;
+    for (i=0;i<5;i++){
+        customer_fork(transaction_list[i], amount_list[i]);
+        sleep(1);
+    }
+    return 5;
 }
 
 int main (int argc, char *argv[]){
