@@ -24,7 +24,10 @@ void DeleteFirstRequest (LinkedList *l){
 }
 
 int FirstRequestAmount (LinkedList *l){
-    return l->head->val;
+    if (l->head){
+        return l->head->val;
+    }
+    return 0;
 }
 
 void printContentOfLL (LinkedList *l){
