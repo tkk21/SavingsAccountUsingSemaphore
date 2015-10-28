@@ -82,7 +82,7 @@ void semaphore_signal (int semid, int semnum){
 
 void print_statement (struct shared_variable_struct * shared_variables){
     printf("Current Balance is: %d\n", shared_variables->balance);
-    printf("Number of Waiting Withdrawals: %d\n", shared_variables->wcount);
+    printf("[PID: %d]: Number of Waiting Withdrawals: %d\n", getpid(), shared_variables->wcount);
 }
 
 //deposit/withdraw functions of the Savings Account problem
