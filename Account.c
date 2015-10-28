@@ -146,7 +146,9 @@ void withdraw(int withdraw){
         printf("[PID: %d, Withdraw]: Waiting on wlist\n", getpid());
         semaphore_wait(semid, SEMAPHORE_WLIST); //start waiting for a deposit
         printf("[PID: %d, Withdraw]: Passed wlist\n", getpid());
- 
+
+        sleep(2); //sleep 2s to slow down
+
         printf("[PID: %d, Withdraw]: (Before Withdrawal) ", getpid());
         print_statement(shared_variables);
         shared_variables->balance = shared_variables->balance - FirstRequestAmount(shared_variables->list);
