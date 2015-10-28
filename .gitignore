@@ -1,3 +1,5 @@
 Account
 *.o
 *.swp
+*.txt
+
