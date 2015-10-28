@@ -105,7 +105,6 @@ void deposit(int deposit){
     printf("[PID: %d, Deposit]: (After Deposit) ", getpid());
     print_statement(shared_variables);
     
-    printf("[PID: %d, Deposit]: (After Deposit) First Waiting Withdrawal: %d\n", getpid(),FirstRequestAmount(shared_variables->list));
     if (shared_variables->wcount == 0){ // no withdrawal requests at this time
         semaphore_signal(semid, SEMAPHORE_MUTEX);
     }
